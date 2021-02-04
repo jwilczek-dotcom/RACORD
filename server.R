@@ -3,7 +3,7 @@ rm(list=ls(all=TRUE))
 #..............................................................................................
 # R A C O R D  (Recherche Automatique de la Ceramique par ORDinateur) -  Server
 #..............................................................................................
-# Last update: 2021/01/28
+# Last update: 2021/02/04
 
 # SET PATH TO APPLICATION FOLDER:
 WD <- c("C:/RACORD/")
@@ -51,7 +51,7 @@ SelSampling_RUNNED <<- ""
 PtsNb_RUNNED <<- 0
 PtsDist_RUNNED <<- 0
 PtsRechant4Breaking <<- 1000
-
+Best_matches_MAX <<- 10
 
 #..............................................................................................
 shinyServer(function(input, output, session) {
@@ -91,6 +91,17 @@ shinyServer(function(input, output, session) {
     output$dataTableTargets <- DT::renderDataTable(
       DT::datatable(data <- targets, rownames=F))
     P.TARGET.O <<- funLoadTargetProfiles()
+    
+    if(input$sldK < length(P.TARGET.O)){
+      if (length(P.TARGET.O) > Best_matches_MAX) {
+        updateSliderInput(session, 'sldK', label='Number of best matches', min=1, max=Best_matches_MAX, step=1, value = 3) 
+      }
+        
+      else {
+        updateSliderInput(session, 'sldK', label='Number of best matches', min=1, max=length(P.TARGET.O), step=1, value = 1)
+      }
+      
+    }
   })
   
   observeEvent(input$fileSources, {
@@ -671,7 +682,7 @@ shinyServer(function(input, output, session) {
   funRun <- function() {}    ### NOT USED, SERVES FOR CODE SEPARATION
   
   observeEvent(input$btnRun, {
-    # test whatever somethin is selected
+    # test whatever something is selected
     if(is.null(P.TARGET.O)) { showNotification(paste("No targets loaded. Please load targets"), duration = dur); return() }
     if(is.null(sS)) { showNotification(paste("No fragment selected. Please select source fragment"), duration = dur); return() }
     showNotification(paste("Matching started"), duration = dur)
@@ -753,28 +764,9 @@ shinyServer(function(input, output, session) {
     PtsNb_RUNNED <<- PtsNb
     PtsDist_RUNNED <<- PtsDist
     
-    # Get information about what have been analysed
-    BEZ <- rep("",length(P.SOURCE.O))
-    DCT <- rep("",length(P.SOURCE.O))
-    RDP <- rep("",length(P.SOURCE.O))
-    RTC <- rep("",length(P.SOURCE.O))
-    ICP_rim <- rep("",length(P.SOURCE.O))
-    ICP_rigid <- rep("",length(P.SOURCE.O))
-    ICP <- rep("",length(P.SOURCE.O))
+    # Perform labelling
+    labelPot()
     
-    for (i in 1:length(P.SOURCE.O)) {
-      if (!is.null(P.SOURCE.O[[i]]$res_BEZ)) { BEZ[i] <- "O"  }
-      if (!is.null(P.SOURCE.O[[i]]$res_DCT)) { DCT[i] <- "O"  }
-      if (!is.null(P.SOURCE.O[[i]]$res_RDP)) { RDP[i] <- "O"  }
-      if (!is.null(P.SOURCE.O[[i]]$res_RTC)) { RTC[i] <- "O"  }
-      if (!is.null(P.SOURCE.O[[i]]$res_ICP_rim)) { ICP_rim[i] <- "O"  }
-      if (!is.null(P.SOURCE.O[[i]]$res_ICP_rigid)) { ICP_rigid[i] <- "O"  }
-      if (!is.null(P.SOURCE.O[[i]]$res_ICP)) { ICP[i] <- "O"  }
-    }
-    sources <<- sources[,1:2]
-    sources <<- cbind(sources, BEZ, DCT, RDP, RTC, ICP_rim, ICP_rigid, ICP)
-    output$dataTableSources = DT::renderDataTable(sources, server = FALSE)
-    showNotification(paste("COMPARISON FINISHED"), duration = dur)
   })
   
   run_BEZ <- function() {
@@ -1316,6 +1308,10 @@ shinyServer(function(input, output, session) {
         else { res <- P.SOURCE.O[[sS]]$res_ICP[,5] }
       }
       
+      else if (input$selMethod=="selALL") {
+        showNotification(paste("Select which method to display"), duration = dur)
+      }
+      
       if(exists("res")) {
         Value = res
         results <- cbind(targets, Value)
@@ -1397,6 +1393,79 @@ shinyServer(function(input, output, session) {
       output$plotTemp4 <- renderPlot({ plot.blank() })
     }
   })
+  
+  
+  observeEvent(input$btnRefreshLabelling, {
+    # test whatever something is selected
+    if(is.null(P.TARGET.O)) { showNotification(paste("No targets loaded. Please load targets"), duration = dur); return() }
+    if(is.null(sS)) { showNotification(paste("No fragment selected. Please select source fragment"), duration = dur); return() }
+    
+    # Perform labelling
+    labelPot()
+
+  })
+  
+  labelPot <- function() {
+    # Get information about what have been analysed
+    BEZ <- rep("",length(P.SOURCE.O))
+    DCT <- rep("",length(P.SOURCE.O))
+    RDP <- rep("",length(P.SOURCE.O))
+    RTC <- rep("",length(P.SOURCE.O))
+    ICP_rim <- rep("",length(P.SOURCE.O))
+    ICP_rigid <- rep("",length(P.SOURCE.O))
+    ICP <- rep("",length(P.SOURCE.O))
+    
+    # Get K and perform labellisation
+    labelMethod <- input$selLabellingMethod
+    K <- input$sldK
+    
+    # define labelling criterium
+    if (labelMethod=="selLabelSAME") {      criter <- K-1 } # -1 because there is a '>' sign and not '>='
+    else if (labelMethod=="selLabelMAJOR") { criter <- (K/2) }
+    
+    for (i in 1:length(P.SOURCE.O)) {
+      if (!is.null(P.SOURCE.O[[i]]$res_BEZ)) {
+        tabl <- table(targets$Class[order(P.SOURCE.O[[i]]$res_BEZ)[1:K]])
+        gr <- which(tabl > criter)
+        if (length(gr)==0) { BEZ[i] <- "O" } else { BEZ[i] <- names(gr) }
+      }
+      if (!is.null(P.SOURCE.O[[i]]$res_DCT)) {
+        tabl <- table(targets$Class[order(P.SOURCE.O[[i]]$res_DCT)[1:K]])
+        gr <- which(tabl > criter)
+        if (length(gr)==0) { DCT[i] <- "O" } else { DCT[i] <- names(gr) }
+      }
+      if (!is.null(P.SOURCE.O[[i]]$res_RDP)) {
+        tabl <- table(targets$Class[order(P.SOURCE.O[[i]]$res_RDP)[1:K]])
+        gr <- which(tabl > criter)
+        if (length(gr)==0) { RDP[i] <- "O" } else { RDP[i] <- names(gr) }
+      }
+      if (!is.null(P.SOURCE.O[[i]]$res_RTC)) {
+        tabl <- table(targets$Class[order(P.SOURCE.O[[i]]$res_RTC)[1:K]])
+        gr <- which(tabl > criter)
+        if (length(gr)==0) { RTC[i] <- "O" } else { RTC[i] <- names(gr) }
+      }
+      if (!is.null(P.SOURCE.O[[i]]$res_ICP_rim)) {
+        tabl <- table(targets$Class[order(P.SOURCE.O[[i]]$res_ICP_rim)[1:K]])
+        gr <- which(tabl > criter)
+        if (length(gr)==0) { ICP_rim[i] <- "O" } else { ICP_rim[i] <- names(gr) }
+      }
+      if (!is.null(P.SOURCE.O[[i]]$res_ICP_rigid)) {
+        tabl <- table(targets$Class[order(P.SOURCE.O[[i]]$res_ICP_rigid)[1:K]])
+        gr <- which(tabl > criter)
+        if (length(gr)==0) { ICP_rigid[i] <- "O" } else { ICP_rigid[i] <- names(gr) }
+      }
+      if (!is.null(P.SOURCE.O[[i]]$res_ICP)) {
+        tabl <- table(targets$Class[order(P.SOURCE.O[[i]]$res_ICP)[1:K]])
+        gr <- which(tabl > criter)
+        if (length(gr)==0) { ICP[i] <- "O" } else { ICP[i] <- names(gr) }
+      }
+    }
+    sources <<- sources[,1:2]
+    sources <<- cbind(sources, BEZ, DCT, RDP, RTC, ICP_rim, ICP_rigid, ICP)
+    output$dataTableSources = DT::renderDataTable(sources, server = FALSE)
+    showNotification(paste("LABELING CHANGED"), duration = dur)
+  }
+  
   
   notifyNotAnalysed <- function() {
     showNotification(paste("Selected individual was not analysed by selected method"), duration = dur)

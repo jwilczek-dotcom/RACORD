@@ -1,4 +1,4 @@
-ID;Diameter;Type
+ID;Diameter;Class
 G07_007_02;12,4;Ritt5
 G07_007_03;15,4;D17A
 G07_007_04;15,4;D17A

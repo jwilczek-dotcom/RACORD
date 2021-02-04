@@ -1,7 +1,7 @@
 #..............................................................................................
 # R A C O R D  -  UI
 #..............................................................................................
-# Last update: 2021/01/28
+# Last update: 2021/02/04
 
 library(shiny)
 library(rgl)
@@ -46,7 +46,7 @@ shinyUI(
                            "Equidistant" = "Sampling_equidistant"),
                          selected="Sampling_equidistant"
              ),
-             checkboxInput('cbxAdvancedSampling', 'Advanced Sampling'),
+             checkboxInput('cbxAdvancedSampling', 'Advanced sampling'),
              conditionalPanel(
                condition = "input.cbxAdvancedSampling",
                conditionalPanel(
@@ -121,17 +121,34 @@ shinyUI(
                                sliderInput('sldICP_Temp', label=NULL, value=100, min=100, max=10000, step=10),
                                sliderInput('sldICP_Tmax', label=NULL, value=40, min=10, max=1000, step=10)
               )
-            ),             
-             actionButton('btnRun', label='RUN'),
-             br(),
-             br(),
-             selectInput('selShow', label=NULL,
-                         c("Show Results" = "",
-                           "Analyse" = "selShowAnalyse",
-                           "Results" = "selShowResults"),
-                         selected="selShowAnalyse"
-             ),
-             width=width.adj[1]),
+            ),
+            actionButton('btnRun', label='RUN'),
+            br(),
+            br(),
+            selectInput('selShow', label=NULL,
+                       c("Show Results" = "",
+                         "Analyse" = "selShowAnalyse",
+                         "Results" = "selShowResults"),
+                       selected="selShowAnalyse"),
+            
+            br(),
+            br(),
+            strong('4. Labelling'),
+            br(),
+            checkboxInput('cbxLabelling', 'Labelling option'),
+            conditionalPanel(
+              condition = "input.cbxLabelling",
+              sliderInput('sldK', 'Number of best matches', min=1, max=10, step=1, value=1),
+              selectInput('selLabellingMethod', label=NULL,
+                          c("All the same class" = "selLabelSAME",
+                            "Majority voting" = "selLabelMAJOR"
+                          ),
+                          selected="selLabelMAJOR"
+              )
+            ),
+            actionButton('btnRefreshLabelling', label='Refresh labelling'),
+            
+            width=width.adj[1]),
 
            mainPanel(
              splitLayout(
