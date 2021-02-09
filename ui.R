@@ -12,14 +12,14 @@ mainPanel.adj <- c("800px", "520px")        # main panel adjustement (width, hei
 
 shinyUI(
   navbarPage("RACORD",
-    tabPanel("Analogy finder",
+    tabPanel("Best-match Finder",
        fluidPage(
          sidebarLayout(
            sidebarPanel(
              strong('1. Load sources and targets'),
              fileInput('fileSources', label=NULL, accept=c('.txt')),
              fileInput('fileTargets', label=NULL, accept=c('.txt')),
-             checkboxInput('cbxBreakProfile', 'Break profile'),
+             checkboxInput('cbxBreakProfile', 'Virtual fragmentation'),
                conditionalPanel(
                  condition = "input.cbxBreakProfile",
                  conditionalPanel(
@@ -63,10 +63,10 @@ shinyUI(
              strong('3. Method selection'),
              selectInput('selMethod', label=NULL,
                          c("Select Matching method" = "",
-                           "Bezier (rim)" = "selBEZ",
                            "DCT (rim)" = "selDCT",
                            "RDP (rim)" = "selRDP",
                            "RTC (rim)" = "selRTC",
+                           "Bezier (rim)" = "selBEZ",
                            "ICP (rim)" = "selICP_Rim",
                            "ICPz (all)" = "selICP_Rigid",
                            "ICP (all)" = "selICP",
@@ -133,9 +133,9 @@ shinyUI(
             
             br(),
             br(),
-            strong('4. Labelling'),
+            strong('4. Attribution'),
             br(),
-            checkboxInput('cbxLabelling', 'Labelling option'),
+            checkboxInput('cbxLabelling', 'Advanced options'),
             conditionalPanel(
               condition = "input.cbxLabelling",
               sliderInput('sldK', 'Number of best matches', min=1, max=10, step=1, value=1),
@@ -146,7 +146,7 @@ shinyUI(
                           selected="selLabelMAJOR"
               )
             ),
-            actionButton('btnRefreshLabelling', label='Refresh labelling'),
+            actionButton('btnRefreshLabelling', label='Refresh'),
             
             width=width.adj[1]),
 
